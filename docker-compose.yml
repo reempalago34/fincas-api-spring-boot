@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: fincas-postgres
+    environment:
+      POSTGRES_DB: adso_fincas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_env_file}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: fincas-api
+    ports:
+      - "31026:31026"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: adso_fincas
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_env_file}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_env_file}
+      JWT_EXPIRATION: 86400000
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
